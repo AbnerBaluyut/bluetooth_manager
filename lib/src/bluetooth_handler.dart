@@ -61,19 +61,41 @@ class BluetoothHandler {
   }
 
   /// Connects to a Bluetooth device by its id.
-  Future<void> connectToDevice(String deviceId, {void Function(String message)? onMessage}) async {
+  Future<void> connectToDevice(String deviceId, {void Function(String message)? onMessage, int timeOut = 5}) async {
+
+     final completer = Completer<void>();
+     
     _connection?.cancel();
-    _connection = _ble.connectToDevice(id: deviceId).listen((update) async {
+    _connection = _ble.connectToDevice(id: deviceId, connectionTimeout: Duration(seconds: timeOut)).listen((update) async {
       if (update.connectionState == DeviceConnectionState.connected) {
         _connectedDevice = _foundDevices.firstWhere((d) => d.id == deviceId);
         await _discoverServicesAndSetup(_connectedDevice.id, onMessage: onMessage);
-        onMessage?.call("Connected: ${_connectedDevice.name}");
+        onMessage?.call("Connected Device: ${_connectedDevice.name}");
+        if (!completer.isCompleted) completer.complete();
       } else if (update.connectionState == DeviceConnectionState.disconnected) {
-        onMessage?.call('Disconnected: ${_connectedDevice.name}');
+        if (!completer.isCompleted) completer.complete();
+        onMessage?.call('Disconnected');
+      } else if (update.connectionState == DeviceConnectionState.disconnecting) {
+        onMessage?.call('Disconnecting');
+      } else if (update.connectionState == DeviceConnectionState.connecting){
+        onMessage?.call('Connecting');
       }
-    }, onError: (e) {
+    }, 
+    cancelOnError: true,
+    onError: (e) {
       onMessage?.call("Error: ${e.toString()}");
     });
+
+    try {
+      await completer.future.timeout(
+        Duration(seconds: timeOut),
+        onTimeout: () {
+          onMessage?.call('Disconnected');
+        },
+      );
+    } catch (e) {
+      onMessage?.call(e.toString());
+    }
   }
 
   /// Discovers services and characteristics for the connected device.
@@ -82,17 +104,27 @@ class BluetoothHandler {
       
       final services = await _ble.getDiscoveredServices(deviceId);
 
+      bool writableSet = false;
+      bool notifiableSet = false;
+
       for (var service in services) {
         for (var char in service.characteristics) {
-          if (char.isWritableWithResponse || char.isWritableWithoutResponse) {
+           log("Service: ${service.id} | Characteristic: ${char.id} "
+          "| Writable: ${char.isWritableWithResponse || char.isWritableWithoutResponse} "
+          "| Notifiable: ${char.isNotifiable}");
+
+          // Set writable characteristic (first one found)
+          if (!writableSet && (char.isWritableWithResponse || char.isWritableWithoutResponse)) {
             _rxChar = QualifiedCharacteristic(
               serviceId: service.id,
               characteristicId: char.id,
               deviceId: deviceId,
             );
+            writableSet = true;
           }
 
-          if (char.isNotifiable) {
+           // Set notifiable characteristic (first one found)
+          if (!notifiableSet && char.isNotifiable) {
             final notifyChar = QualifiedCharacteristic(
               serviceId: service.id,
               characteristicId: char.id,
@@ -103,11 +135,20 @@ class BluetoothHandler {
             _rxSubscription = _ble.subscribeToCharacteristic(notifyChar).listen((data) {
               _handleReceivedCommand(data, onMessage);
             });
+            notifiableSet = true;
           }
+
+          if (writableSet && notifiableSet) break;
         }
+
+        if (writableSet && notifiableSet) break;
       }
 
-      onMessage?.call("Connected and services discovered.");
+      if (writableSet && notifiableSet) {
+        onMessage?.call("Connected and services discovered.");
+      } else {
+        onMessage?.call("No usable characteristics found.");
+      }
 
     } catch (e) {
       onMessage?.call("Error: ${e.toString()}");
