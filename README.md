@@ -53,8 +53,6 @@ iOS:
 <string>This app needs location access to scan for Bluetooth devices.</string>
 ```
 
-```markdown
-
 ## 🧑‍💻 Code Highlights
 
 ### 🟦 Scan for BLE Devices
@@ -83,6 +81,4 @@ bluetooth.connectToDevice(
 
 ```dart
 await bluetooth.sendCommand(!_isEnableLED ? "LED_ON" : "LED_OFF");
-```
-
 ```
