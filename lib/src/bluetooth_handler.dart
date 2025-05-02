@@ -172,10 +172,15 @@ class BluetoothHandler {
   }
 
   // Send a command to the Arduino
-  Future<void> sendCommand(String message) async {
+  Future<void> sendCommand(String message, {bool withResponse = true}) async {
     if (_rxChar.deviceId.isEmpty) return;
     final data = utf8.encode(message);
-    await _ble.writeCharacteristicWithResponse(_rxChar, value: data);
+
+    if (withResponse) {
+      return await _ble.writeCharacteristicWithResponse(_rxChar, value: data);
+    } else {
+      return await _ble.writeCharacteristicWithoutResponse(_rxChar, value: data);
+    }
   }
 
   void dispose() {
