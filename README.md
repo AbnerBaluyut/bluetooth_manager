@@ -6,8 +6,11 @@ A lightweight Flutter package to scan and connect to Bluetooth Low Energy (BLE) 
 
 ## ✨ Features
 
-- 🔍 Scan for BLE devices nearby
-- 🔗 Connect and disconnect from devices
+- 🔍 Scan for BLE devices nearby  
+- 🔗 Connect to a device by its ID  
+- 🔧 Discover GATT services and characteristics  
+- 📤 Send custom commands (e.g. `LED_ON`, `LED_OFF`)  
+- 📥 Receive notifications from the BLE device
 - ✅ Request and handle runtime permissions (Android 12+)
 
 ---
@@ -48,4 +51,38 @@ iOS:
 
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>This app needs location access to scan for Bluetooth devices.</string>
+```
+
+```markdown
+
+## 🧑‍💻 Code Highlights
+
+### 🟦 Scan for BLE Devices
+
+```dart
+bluetooth.startScan(
+  timeout: Duration(seconds: 10),
+  onStopScan: () => // handle your function here,
+  onError: (err) => log("Start Scan Error: $err"),
+);
+```
+
+### 🟩 Connect and Listen to Status
+
+```dart
+bluetooth.connectToDevice(
+  model.id,
+  timeout: 20,
+  onMessage: (message) {
+    // Handle your statuses
+  }
+);
+```
+
+### 🟧 Send LED ON/OFF Commands
+
+```dart
+await bluetooth.sendCommand(!_isEnableLED ? "LED_ON" : "LED_OFF");
+```
+
 ```
