@@ -1,4 +1,4 @@
-# bluetooth_handler
+# bluetooth_manager
 
 A lightweight Flutter package to scan and connect to Bluetooth Low Energy (BLE) devices — such as Arduino — with built-in permission handling for Android (including Android 12+).
 
