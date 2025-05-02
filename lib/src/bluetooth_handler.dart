@@ -4,7 +4,6 @@ import 'dart:developer';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'permission_handler.dart'; 
 
 class BluetoothHandler {
 
@@ -22,38 +21,34 @@ class BluetoothHandler {
   final List<DiscoveredDevice> _foundDevices = [];
 
   /// Starts scanning for Bluetooth devices.
-  Future<void> startScan({Duration timeout = const Duration(seconds: 5), VoidCallback? onStopScan}) async {
+  void startScan({Duration timeout = const Duration(seconds: 5), VoidCallback? onStopScan}) {   
 
-    final granted = await PermissionHandler.requestBlePermissions();
-    if (!granted) {
-      throw Exception('Bluetooth permissions not granted.');
+    try {
+      log("Scanning");
+      _foundDevices.clear();
+      _scanSubscription?.cancel();
+      _scanSubscription = _ble.scanForDevices(withServices: [], scanMode: ScanMode.lowLatency).listen((device) {
+        if (_foundDevices.firstOrNull?.id == device.id) {
+          _foundDevices.add(device);
+          _scanStreamController.add(_foundDevices);
+        }
+      }, 
+      cancelOnError: true, 
+      onError: (err) {
+        log("ERROR: $err");
+        stopScan();
+      });
+
+      Future.delayed(timeout, () {
+        onStopScan?.call();
+        stopScan();
+      });
+    } catch (e) {
+      log("BLE scan error: $e");
     }
-
-    final ready = await PermissionHandler.isBluetoothReady(_ble);
-    if (!ready) {
-      throw Exception('Bluetooth not ready. Please enable it.');
-    }
-
-    log("Scanning");
-    _foundDevices.clear();
-    _scanSubscription?.cancel();
-    _scanSubscription = _ble.scanForDevices(withServices: []).listen((device) {
-      if (_foundDevices.firstOrNull?.id == device.id) {
-        _foundDevices.add(device);
-        _scanStreamController.add(_foundDevices);
-      }
-    }, 
-    cancelOnError: true, 
-    onError: (err) {
-      log("ERROR: $err");
-      stopScan();
-    });
-
-    Future.delayed(timeout, () {
-      onStopScan?.call();
-      stopScan();
-    });
   }
+
+  bool isBluetoothReady() => _ble.status == BleStatus.ready;
 
   void stopScan() {
     log("Stoppped scan");

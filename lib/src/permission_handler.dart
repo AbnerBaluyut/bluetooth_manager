@@ -1,28 +1,45 @@
 import 'dart:io';
 
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionHandler {
-  static Future<bool> requestBlePermissions() async {
-    if (Platform.isAndroid) {
-      final permissions = [
-        Permission.bluetooth,
+
+  static Future<bool> requestPermissions() async {
+
+    if (!Platform.isAndroid) return true;
+    
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+    List<Permission> permissions;
+
+    if (sdkInt >= 31) {
+      permissions = [
         Permission.bluetoothScan,
         Permission.bluetoothConnect,
-        Permission.locationWhenInUse,
+        Permission.location,
       ];
-
-      final statuses = await permissions.request();
-      return statuses.values.every((status) => status.isGranted);
+    } else {
+      permissions = [
+        Permission.bluetooth,
+        Permission.location,
+      ];
     }
 
-    // iOS permissions are granted via Info.plist only
-    return true;
-  }
+    Map<Permission, PermissionStatus> statuses = await permissions.request();
 
-  static Future<bool> isBluetoothReady(FlutterReactiveBle ble) async {
-    final status = ble.status;
-    return status == BleStatus.ready;
+    // Check for specific denied or permanently denied permissions
+    bool bluetoothDenied = statuses[Permission.bluetooth]?.isDenied ?? false;
+    bool bluetoothPermanentlyDenied = statuses[Permission.bluetooth]?.isPermanentlyDenied ?? false;
+    bool locationDenied = statuses[Permission.location]?.isDenied ?? false;
+    bool locationPermanentlyDenied = statuses[Permission.location]?.isPermanentlyDenied ?? false;
+
+    if (bluetoothDenied || bluetoothPermanentlyDenied) {
+      throw("bluetooth_permission_denied");
+    } else if (locationDenied || locationPermanentlyDenied) {
+      throw("location_permission_denied");
+    }
+
+    return !(bluetoothDenied || locationDenied);
   }
 }
