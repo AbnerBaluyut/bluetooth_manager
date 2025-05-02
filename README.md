@@ -1,39 +1,51 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# bluetooth_handler
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A lightweight Flutter package to scan and connect to Bluetooth Low Energy (BLE) devices — such as Arduino — with built-in permission handling for Android (including Android 12+).
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+---
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## ✨ Features
 
-## Features
+- 🔍 Scan for BLE devices nearby
+- 🔗 Connect and disconnect from devices
+- ✅ Request and handle runtime permissions (Android 12+)
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+---
 
-## Getting started
+## 📦 Installation
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Add this to your `pubspec.yaml`:
 
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```yaml
+dependencies:
+  bluetooth_handler:
+    git:
+      url: https://github.com/AbnerBaluyut/bluetooth.git
 ```
 
-## Additional information
+## 🔐 Required Permissions
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+Android:
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+
+<!-- Legacy Bluetooth permissions for Android 11 and below -->
+<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+<!-- Android 12+ (API 31+) permissions -->
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+<!-- Required for BLE scanning (only needed on Android 10/11) -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+```
+
+iOS:
+```xml
+<key>NSBluetoothAlwaysUsageDescription</key>
+<string>This app uses Bluetooth to connect to nearby devices.</string>
+
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app needs location access to scan for Bluetooth devices.</string>
+```
