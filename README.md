@@ -65,6 +65,18 @@ bluetooth.startScan(
 );
 ```
 
+### 🟪 Listen for Scan Results and Filter Available Devices:
+
+```dart
+bluetooth.scanResults.listen((devices) {
+  // handle the function here
+},
+cancelOnError: true,
+onError: (err) {
+  log("Scan Results Error: $err");
+});
+```
+
 ### 🟩 Connect and Listen to Status
 
 ```dart
