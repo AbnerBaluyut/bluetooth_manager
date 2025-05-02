@@ -18,9 +18,9 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bluetooth_handler:
+  bluetooth_manager:
     git:
-      url: https://github.com/AbnerBaluyut/bluetooth.git
+      url: https://github.com/AbnerBaluyut/bluetooth_manager.git
 ```
 
 ## 🔐 Required Permissions
