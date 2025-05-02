@@ -21,7 +21,7 @@ class BluetoothHandler {
   final List<DiscoveredDevice> _foundDevices = [];
 
   /// Starts scanning for Bluetooth devices.
-  void startScan({Duration timeout = const Duration(seconds: 5), VoidCallback? onStopScan}) {   
+  void startScan({Duration timeout = const Duration(seconds: 5), VoidCallback? onStopScan, void Function(String message)? onError}) {   
 
     try {
       log("Scanning");
@@ -35,7 +35,8 @@ class BluetoothHandler {
       }, 
       cancelOnError: true, 
       onError: (err) {
-        log("ERROR: $err");
+        log("scanForDevices Err: $err");
+        onError?.call(err.toString());
         stopScan();
       });
 
@@ -43,8 +44,11 @@ class BluetoothHandler {
         onStopScan?.call();
         stopScan();
       });
+
     } catch (e) {
       log("BLE scan error: $e");
+      onError?.call(e.toString());
+      stopScan();
     }
   }
 
@@ -63,45 +67,69 @@ class BluetoothHandler {
       if (update.connectionState == DeviceConnectionState.connected) {
         _connectedDevice = _foundDevices.firstWhere((d) => d.id == deviceId);
         await _discoverServicesAndSetup(_connectedDevice.id, onMessage: onMessage);
+        onMessage?.call("Connected: ${_connectedDevice.name}");
       } else if (update.connectionState == DeviceConnectionState.disconnected) {
-        onMessage?.call('Disconnected');
+        onMessage?.call('Disconnected: ${_connectedDevice.name}');
       }
     }, onError: (e) {
-      onMessage?.call("Connection error: $e");
+      onMessage?.call("Error: ${e.toString()}");
     });
   }
 
   /// Discovers services and characteristics for the connected device.
   Future<void> _discoverServicesAndSetup(String deviceId, {void Function(String message)? onMessage}) async {
-    final services = await _ble.getDiscoveredServices(deviceId);
+    try {
+      
+      final services = await _ble.getDiscoveredServices(deviceId);
 
-    for (var service in services) {
-      for (var char in service.characteristics) {
-        if (char.isWritableWithResponse || char.isWritableWithoutResponse) {
-          _rxChar = QualifiedCharacteristic(
-            serviceId: service.id,
-            characteristicId: char.id,
-            deviceId: deviceId,
-          );
-        }
+      for (var service in services) {
+        for (var char in service.characteristics) {
+          if (char.isWritableWithResponse || char.isWritableWithoutResponse) {
+            _rxChar = QualifiedCharacteristic(
+              serviceId: service.id,
+              characteristicId: char.id,
+              deviceId: deviceId,
+            );
+          }
 
-        if (char.isNotifiable) {
-          final notifyChar = QualifiedCharacteristic(
-            serviceId: service.id,
-            characteristicId: char.id,
-            deviceId: deviceId,
-          );
+          if (char.isNotifiable) {
+            final notifyChar = QualifiedCharacteristic(
+              serviceId: service.id,
+              characteristicId: char.id,
+              deviceId: deviceId,
+            );
 
-          _rxSubscription?.cancel();
-          _rxSubscription = _ble.subscribeToCharacteristic(notifyChar).listen((data) {
-            final received = utf8.decode(data);
-            onMessage?.call("Received: $received");
-          });
+            _rxSubscription?.cancel();
+            _rxSubscription = _ble.subscribeToCharacteristic(notifyChar).listen((data) {
+              _handleReceivedCommand(data, onMessage);
+            });
+          }
         }
       }
-    }
 
-    onMessage?.call("Connected and services discovered.");
+      onMessage?.call("Connected and services discovered.");
+
+    } catch (e) {
+      onMessage?.call("Error: ${e.toString()}");
+    }
+  }
+
+  /// Handles the received data from the connected Bluetooth device.
+  void _handleReceivedCommand(List<int> data, void Function(String message)? onMessage) {
+    final receivedMessage = utf8.decode(data);
+    log("Received command: $receivedMessage");
+    onMessage?.call(receivedMessage);
+
+    // ! You can add custom logic here to process the received command.
+    // ! For example, trigger specific actions based on the received message.
+    // if (receivedMessage == "turnOn") {
+    //   log("Device should turn on now");
+    //   ! Handle the command, such as turning on the device
+    // } else if (receivedMessage == "turnOff") {
+    //   log("Device should turn off now");
+    //   ! Handle the command, such as turning off the device
+    // }
+    // ! Add more conditions as needed
   }
 
   // Send a command to the Arduino
