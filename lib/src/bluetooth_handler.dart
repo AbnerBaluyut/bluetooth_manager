@@ -86,16 +86,14 @@ class BluetoothHandler {
       onMessage?.call("Error: ${e.toString()}");
     });
 
-    try {
-      await completer.future.timeout(
-        Duration(seconds: timeOut),
-        onTimeout: () {
-          onMessage?.call('Disconnected');
-        },
-      );
-    } catch (e) {
-      onMessage?.call(e.toString());
-    }
+    await completer.future.timeout(
+      Duration(seconds: timeOut),
+      onTimeout: () {
+        _connection?.cancel();
+        _connection = null;
+        onMessage?.call('Disconnected');
+      },
+    );
   }
 
   /// Discovers services and characteristics for the connected device.
