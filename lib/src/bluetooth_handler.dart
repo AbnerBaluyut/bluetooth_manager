@@ -28,7 +28,7 @@ class BluetoothHandler {
       _foundDevices.clear();
       _scanSubscription?.cancel();
       _scanSubscription = _ble.scanForDevices(withServices: [], scanMode: ScanMode.lowLatency).listen((device) {
-        if (_foundDevices.firstOrNull?.id == device.id) {
+        if (!_foundDevices.any((d) => d.id == device.id)) {
           _foundDevices.add(device);
           _scanStreamController.add(_foundDevices);
         }
