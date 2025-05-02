@@ -61,12 +61,12 @@ class BluetoothHandler {
   }
 
   /// Connects to a Bluetooth device by its id.
-  Future<void> connectToDevice(String deviceId, {void Function(String message)? onMessage, int timeOut = 5}) async {
+  Future<void> connectToDevice(String deviceId, {void Function(String message)? onMessage, int timeout = 5}) async {
 
      final completer = Completer<void>();
      
     _connection?.cancel();
-    _connection = _ble.connectToDevice(id: deviceId, connectionTimeout: Duration(seconds: timeOut)).listen((update) async {
+    _connection = _ble.connectToDevice(id: deviceId, connectionTimeout: Duration(seconds: timeout)).listen((update) async {
       if (update.connectionState == DeviceConnectionState.connected) {
         _connectedDevice = _foundDevices.firstWhere((d) => d.id == deviceId);
         await _discoverServicesAndSetup(_connectedDevice.id, onMessage: onMessage);
@@ -87,7 +87,7 @@ class BluetoothHandler {
     });
 
     await completer.future.timeout(
-      Duration(seconds: timeOut),
+      Duration(seconds: timeout),
       onTimeout: () {
         _connection?.cancel();
         _connection = null;
