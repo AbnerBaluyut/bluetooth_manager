@@ -183,10 +183,14 @@ class BluetoothHandler {
     }
   }
 
-  void dispose() {
+  void disconnectDevice() {
     _scanSubscription?.cancel();
     _connection?.cancel();
     _rxSubscription?.cancel();
+  }
+
+  void dispose() {
+    disconnectDevice();
     _scanStreamController.close();
   }
 }
