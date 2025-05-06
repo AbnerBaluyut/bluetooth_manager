@@ -143,11 +143,11 @@ class BluetoothHandler {
         if (writableSet && notifiableSet) break;
       }
 
-      if (writableSet && notifiableSet) {
-        onMessage?.call("Connected and services discovered.");
-      } else {
-        onMessage?.call("No usable characteristics found.");
-      }
+      // if (writableSet && notifiableSet) {
+      //   onMessage?.call("Connected and services discovered.");
+      // } else {
+      //   onMessage?.call("No usable characteristics found.");
+      // }
 
     } catch (e) {
       onMessage?.call("Error: ${e.toString()}");
