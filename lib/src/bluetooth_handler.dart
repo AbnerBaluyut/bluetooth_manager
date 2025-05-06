@@ -17,6 +17,7 @@ class BluetoothHandler {
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
   StreamSubscription<ConnectionStateUpdate>? _connection;
   StreamSubscription<List<int>>? _rxSubscription;
+  Timer? _scanTimer;
 
   final List<DiscoveredDevice> _foundDevices = [];
 
@@ -40,7 +41,7 @@ class BluetoothHandler {
         stopScan();
       });
 
-      Future.delayed(timeout, () {
+      _scanTimer = Timer(timeout, () {
         onStopScan?.call();
         stopScan();
       });
@@ -184,9 +185,17 @@ class BluetoothHandler {
   }
 
   void disconnectDevice() {
+    _scanTimer?.cancel();
+    _scanTimer = null;
+
     _scanSubscription?.cancel();
+    _scanSubscription = null;
+
     _connection?.cancel();
+    _connection = null;
+
     _rxSubscription?.cancel();
+    _rxSubscription = null;
   }
 
   void dispose() {

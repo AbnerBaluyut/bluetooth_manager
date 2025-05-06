@@ -20,7 +20,7 @@ extension DiscoveredDeviceX on DiscoveredDevice {
 
   DiscoveredDeviceModel toDiscoveredDeviceModel() => DiscoveredDeviceModel(
     id: id,
-    name: name,
+    name: name.isEmpty ? '(Unnamed Device)' : name,
     rssi: rssi,
     connectable: connectable.toConnectable()
   );
