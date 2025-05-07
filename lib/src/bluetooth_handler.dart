@@ -5,11 +5,12 @@ import 'dart:developer';
 import 'package:flutter/services.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
+import '../bluetooth_manager.dart';
+
 class BluetoothHandler {
 
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   late QualifiedCharacteristic _rxChar;
-  late DiscoveredDevice _connectedDevice;
 
   final _scanStreamController = StreamController<List<DiscoveredDevice>>.broadcast();
   Stream<List<DiscoveredDevice>> get scanResults => _scanStreamController.stream;
@@ -20,6 +21,41 @@ class BluetoothHandler {
   Timer? _scanTimer;
 
   final List<DiscoveredDevice> _foundDevices = [];
+
+  // Quick Scan for a specific device.
+  Future<DiscoveredDevice?> quickScanForDevice({
+    required bool Function(DiscoveredDevice device) matchDevice,
+    Duration timeout = const Duration(seconds: 5),
+    void Function(String message)? onError,
+  }) async {
+    final completer = Completer<DiscoveredDevice?>();
+    log("Quick scan started");
+    try {
+      _scanSubscription?.cancel();
+      _scanSubscription = _ble.scanForDevices(withServices: [], scanMode: ScanMode.lowLatency).listen((device) {
+        if (matchDevice(device)) {
+          stopScan();
+          if (!completer.isCompleted) completer.complete(device);
+        }
+      }, cancelOnError: true, onError: (err) {
+        stopScan();
+        if (!completer.isCompleted) completer.complete(null);
+        onError?.call("Scan error: $err");
+      });
+
+      _scanTimer = Timer(timeout, () {
+        stopScan();
+        if (!completer.isCompleted) completer.complete(null);
+      });
+
+    } catch (e) {
+      stopScan();
+      if (!completer.isCompleted) completer.complete(null);
+      onError?.call("Exception during scan: $e");
+    }
+
+    return completer.future;
+  }
 
   /// Starts scanning for Bluetooth devices.
   void startScan({Duration timeout = const Duration(seconds: 5), VoidCallback? onStopScan, void Function(String message)? onError}) {   
@@ -62,16 +98,15 @@ class BluetoothHandler {
   }
 
   /// Connects to a Bluetooth device by its id.
-  Future<void> connectToDevice(String deviceId, {void Function(String message)? onMessage, int timeout = 5}) async {
+  Future<void> connectToDevice(DiscoveredDeviceModel device, {void Function(String message)? onMessage, int timeout = 5}) async {
 
      final completer = Completer<void>();
      
     _connection?.cancel();
-    _connection = _ble.connectToDevice(id: deviceId, connectionTimeout: Duration(seconds: timeout)).listen((update) async {
+    _connection = _ble.connectToDevice(id: device.id, connectionTimeout: Duration(seconds: timeout)).listen((update) async {
       if (update.connectionState == DeviceConnectionState.connected) {
-        _connectedDevice = _foundDevices.firstWhere((d) => d.id == deviceId);
-        await _discoverServicesAndSetup(_connectedDevice.id, onMessage: onMessage);
-        onMessage?.call("Connected Device: ${_connectedDevice.name}");
+        await _discoverServicesAndSetup(device.id, onMessage: onMessage);
+        onMessage?.call("Connected Device: ${device.name}");
         if (!completer.isCompleted) completer.complete();
       } else if (update.connectionState == DeviceConnectionState.disconnected) {
         if (!completer.isCompleted) completer.complete();
