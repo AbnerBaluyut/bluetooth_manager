@@ -37,10 +37,12 @@ class BluetoothHandler {
           stopScan();
           if (!completer.isCompleted) completer.complete(device);
         }
-      }, cancelOnError: true, onError: (err) {
+      },
+      cancelOnError: true, 
+      onError: (err) {
         stopScan();
         if (!completer.isCompleted) completer.complete(null);
-        onError?.call("Scan error: $err");
+        onError?.call(err.toString());
       });
 
       _scanTimer = Timer(timeout, () {
@@ -51,7 +53,7 @@ class BluetoothHandler {
     } catch (e) {
       stopScan();
       if (!completer.isCompleted) completer.complete(null);
-      onError?.call("Exception during scan: $e");
+      onError?.call(e.toString());
     }
 
     return completer.future;
